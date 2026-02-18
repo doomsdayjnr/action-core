@@ -153,6 +153,7 @@ export async function GET(req: Request) {
       // Digital/standard donation
       links.actions = [
         {
+          type: "post",
           label: "Donate 0.1 SOL",
           href: `/api/actions/donate?apiKey=${apiKey}`
         }
