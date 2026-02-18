@@ -131,12 +131,12 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
     const body: ActionPostRequest = await req.json();
     const account = new PublicKey(body.account);
-    const { slug } = params;
+    const { slug } = await context.params;
 
     const blink = await prisma.blink.findUnique({
       where: { slug },
