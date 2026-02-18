@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Solana Wallet Adapter Styles */
+.wallet-adapter-button {
+  background-color: #512da8;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-family: 'Inter', 'Roboto', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  height: 48px;
+  line-height: 48px;
+  padding: 0 24px;
+  transition: background-color 0.2s ease;
+}
+
+.wallet-adapter-button:hover {
+  background-color: #422585;
+}
+
+.wallet-adapter-button:active {
+  background-color: #371d70;
+}
+
+.wallet-adapter-button:disabled {
+  background-color: #808080;
+  cursor: not-allowed;
+}
+
+.wallet-adapter-modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+}
+
+.wallet-adapter-modal-container {
+  display: flex;
+  margin: 3rem;
+  min-height: calc(100vh - 6rem);
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .wallet-adapter-modal-container {
+    margin: 1rem;
+    min-height: calc(100vh - 2rem);
+  }
+}
+
+.wallet-adapter-modal-wrapper {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  z-index: 50;
+  max-width: 400px;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  font-family: 'Inter', 'Roboto', sans-serif;
+  font-weight: 600;
+  padding: 0;
+  overflow: hidden;
+}
+
+.wallet-adapter-modal-button-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 12px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+}
+
+.wallet-adapter-modal-button-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.wallet-adapter-modal-list {
+  margin: 0 0 12px 0;
+  padding: 0;
+  width: 100%;
+  list-style: none;
+}
+
+.wallet-adapter-modal-list-more {
+  cursor: pointer;
+  border: none;
+  padding: 12px 24px;
+  margin: 0 0 12px 0;
+  width: 100%;
+  border-radius: 0 0 10px 10px;
+  font-weight: 600;
+  background: transparent;
+  color: #512da8;
+}
+
+.wallet-adapter-modal-list-more:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.wallet-adapter-modal-middle {
+  width: 100%;
+  padding: 0 24px 24px 24px;
+}
+
+.wallet-adapter-modal-title {
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: 600;
+  margin: 0;
+  padding: 32px 24px 24px 24px;
+  color: #2c2d30;
+}
+
+.wallet-adapter-modal-list li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  border-radius: 0;
+  width: 100%;
+  justify-content: space-between;
+  background: transparent;
+  color: #2c2d30;
+  padding: 16px 24px;
+  font-weight: 600;
+  font-size: 16px;
+  height: auto;
+  line-height: 24px;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Custom styles for ActionCore Dashboard */
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.status-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-confirmed {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-pending {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-shipped {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.status-delivered {
+  @apply bg-purple-100 text-purple-800;
+}

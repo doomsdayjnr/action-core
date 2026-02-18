@@ -1,0 +1,216 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlanTier {
+  FREE
+  BASE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum ActionType {
+  TRANSFER      // SOL transfer
+  PHYSICAL      // Physical product with shipping
+  DIGITAL       // Digital download/service
+  SPL_TOKEN     // SPL token (USDC, meme tokens)
+  NFT_MINT      // NFT minting
+  SUBSCRIPTION  // Recurring payment
+}
+
+enum BlinkType {
+  DIRECT        // Standalone Blink created in Dashboard
+  WORDPRESS     // From WordPress plugin
+  SHOPIFY       // From Shopify integration
+  API           // Created via API programmatically
+}
+
+model Merchant {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique // The Solana wallet used to login to ActionCore
+  payoutAddress String?  // Where the SOL from Blinks actually goes
+  email         String?  @unique
+  apiKey        String   @unique @default(uuid()) // For WP/Shopify plugin auth
+  
+  // Relations
+  blinks        Blink[]
+  subscription  Subscription?
+  orders        Order[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  merchantId           String             @unique
+  merchant             Merchant           @relation(fields: [merchantId], references: [id])
+  
+  tier                 PlanTier           @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  
+  // Usage tracking for recurring logic
+  activeBlinksLimit    Int                @default(3) // Free tier = 3 blinks
+  
+  // Billing billing (Stripe or On-chain)
+  externalCustomerId   String?            @unique // e.g., Stripe Customer ID
+  currentPeriodEnd     DateTime?
+  
+  updatedAt            DateTime           @updatedAt
+}
+
+model Token {
+  id            String   @id @default(cuid())
+  mintAddress   String   @unique // SPL token mint address
+  symbol        String   // e.g., "USDC", "BONK", "MYMEME"
+  name          String   // e.g., "USD Coin", "Bonk"
+  decimals      Int      @default(6) // Token decimals
+  logoUrl       String?  // Token logo image URL
+  
+  // For meme tokens - allow dynamic pricing
+  isStable      Boolean  @default(false) // true for USDC, false for meme tokens
+  
+  // Relations
+  blinks        Blink[]
+  orders        Order[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Blink {
+  id          String   @id @default(cuid())
+  merchantId  String
+  merchant    Merchant @relation(fields: [merchantId], references: [id])
+  
+  // Blink Type - Where this Blink was created from
+  blinkType   BlinkType @default(DIRECT) // DIRECT, WORDPRESS, SHOPIFY, API
+  
+  // Action Metadata (What the user sees in the Blink box)
+  title       String
+  description String
+  icon        String   // URL to small icon
+  imageUrl    String?  // URL to larger image (for product display)
+  label       String   // Text on the button
+  
+  // Transaction logic
+  amount      Float    // Price in token units (e.g., 100 for 100 USDC)
+  currency    String   @default("SOL") // "SOL", "USDC", "BONK", etc.
+  actionType  ActionType @default(TRANSFER) // TRANSFER, PHYSICAL, DIGITAL, SPL_TOKEN, NFT_MINT, SUBSCRIPTION
+  
+  // For SPL token payments
+  tokenMintId String?  // Links to Token model for SPL tokens
+  token       Token?   @relation(fields: [tokenMintId], references: [id])
+  
+  // For physical goods
+  requiresShipping Boolean @default(false)
+  
+  // For digital goods/services
+  deliveryMethod String?  // "email", "webhook", "download"
+  deliveryConfig Json?    // Config for delivery (webhook URL, email template, etc.)
+  
+  active      Boolean  @default(true)
+  slug        String   @unique // The unique part of the URL: actioncore.com/api/b/[slug]
+  
+  // Public URL for Direct Blinks (no website needed)
+  publicUrl   String?  // actioncore.com/b/[slug] for standalone sharing
+  
+  // Analytics
+  clickCount  Int      @default(0)
+  totalVolume Float    @default(0.0) // In token units processed through this link
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  orders      Order[]
+
+  @@index([merchantId])
+  @@index([tokenMintId])
+  @@index([blinkType])
+}
+
+// Order model for tracking transactions and physical goods
+model Order {
+  id              String      @id @default(cuid())
+  
+  // Relations
+  merchantId      String
+  merchant        Merchant    @relation(fields: [merchantId], references: [id])
+  
+  blinkId         String
+  blink           Blink       @relation(fields: [blinkId], references: [id])
+  
+  // Customer info (collected via Blink parameters)
+  customerWallet  String      // The wallet that paid
+  customerEmail   String?     // For digital goods and receipts
+  
+  // Shipping details (for physical goods)
+  shippingAddress String?     // Full shipping address
+  shippingName    String?     // Recipient name
+  shippingPhone   String?     // Contact phone
+  
+  // Transaction details
+  amount          Float       // Total amount paid (in token units)
+  currency        String      @default("SOL") // "SOL", "USDC", "BONK", etc.
+  feeAmount       Float       // Myra service fee (1% in token units)
+  merchantAmount  Float       // Amount going to merchant (99% in token units)
+  
+  // SPL Token details
+  tokenMintId     String?     // Links to Token model
+  token           Token?      @relation(fields: [tokenMintId], references: [id])
+  tokenDecimals   Int         @default(9) // Decimals for the token (9 for SOL, 6 for USDC)
+  
+  // For digital goods delivery
+  deliveryStatus  String?     @default("PENDING") // PENDING, DELIVERED, FAILED
+  deliveryAttemptedAt DateTime?
+  deliveryError   String?     // Error message if delivery failed
+  
+  // Blockchain details
+  transactionSignature String? @unique // Solana tx signature
+  orderIdMemo     String      // Unique ID passed in transaction memo
+  
+  // Order status
+  status          OrderStatus @default(PENDING)
+  
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  confirmedAt     DateTime?   // When payment was confirmed
+  shippedAt       DateTime?   // When physical item was shipped
+  deliveredAt     DateTime?   // When item was delivered
+
+  @@index([merchantId])
+  @@index([blinkId])
+  @@index([customerWallet])
+  @@index([status])
+  @@index([orderIdMemo])
+  @@index([tokenMintId])
+}
