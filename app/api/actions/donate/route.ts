@@ -1,4 +1,3 @@
-export const runtime = "nodejs";
 import { 
   ActionPostResponse, 
   ACTIONS_CORS_HEADERS, 
@@ -123,6 +122,7 @@ export async function GET(req: Request) {
       // Physical product: collect shipping details
       links.actions = [
         {
+          type: "post",
           label: "Buy Now",
           href: `/api/actions/donate?apiKey=${apiKey}&type=physical`,
           parameters: [
