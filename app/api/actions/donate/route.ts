@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { 
   ActionPostResponse, 
   ACTIONS_CORS_HEADERS, 

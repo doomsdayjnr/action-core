@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '../../../lib/prisma';
-import { redis } from '../../../lib/redis';
+import { prisma } from '../../../../lib/prisma';
+import { redis } from '../../../../lib/redis';
 import { ACTIONS_CORS_HEADERS } from '@solana/actions';
 import { Connection, clusterApiUrl, PublicKey } from '@solana/web3.js';
 
