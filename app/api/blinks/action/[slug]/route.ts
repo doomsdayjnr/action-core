@@ -16,6 +16,14 @@ import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana
 const MYRA_FEE_WALLET = new PublicKey(process.env.MYRA_FEE_WALLET!);
 const SERVICE_FEE_PERCENT = 0.01;
 
+type ServiceData = {
+  email?: string;
+  name?: string;
+  address?: string;
+  phone?: string;
+  amount?: string;
+};
+
 function generateOrderId(): string {
   return `AC-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 }
@@ -84,6 +92,7 @@ export async function GET(
 
     if (blink.actionType === 'PHYSICAL') {
       links.actions = [{
+        type: "post",
         label: `Buy for ${blink.amount} ${blink.currency}`,
         href: baseUrl,
         parameters: [
@@ -96,6 +105,7 @@ export async function GET(
     } else {
       // Simple payment (TOKEN, DONATION, TRANSFER)
       links.actions = [{
+        type: "post",
         label: blink.label || `Pay ${blink.amount} ${blink.currency}`,
         href: baseUrl
       }];
@@ -159,10 +169,13 @@ export async function POST(
     // Extract shipping details if physical
     let customerEmail, shippingName, shippingAddress, shippingPhone;
     if (blink.actionType === 'PHYSICAL' && body.data) {
-      customerEmail = body.data.email as string;
-      shippingName = body.data.name as string;
-      shippingAddress = body.data.address as string;
-      shippingPhone = body.data.phone as string;
+
+      const form = body.data as unknown as ServiceData;
+
+      customerEmail = form.email;
+      shippingName = form.name;
+      shippingAddress = form.address;
+      shippingPhone = form.phone;
 
       if (!customerEmail || !shippingName || !shippingAddress) {
         return Response.json({ message: "Missing shipping information" }, { status: 400, headers: ACTIONS_CORS_HEADERS });
