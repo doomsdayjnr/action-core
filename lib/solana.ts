@@ -8,7 +8,7 @@ const globalForSolana = global as unknown as { solanaConnection: Connection };
 export const connection =
   globalForSolana.solanaConnection ||
   new Connection(
-    process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
+    process.env.SOLANA_RPC_URL + process.env.NEXT_PUBLIC_HELIUS_KEY || "https://api.mainnet-beta.solana.com",
     {
       commitment: DEFAULT_COMMITMENT,
       // Custom retry config for resilience
