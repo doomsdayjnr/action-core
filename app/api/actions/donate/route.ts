@@ -30,6 +30,13 @@ const CACHE_TTL = 300;
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW = 60; // seconds
 
+type PhysicalFormData = {
+  email: string;
+  name: string;
+  address: string;
+  phone?: string;
+};
+
 /**
  * Generate a unique order ID for memo field
  */
@@ -193,7 +200,9 @@ export async function GET(req: Request) {
   }
 }
 
-export const OPTIONS = GET;
+export const OPTIONS = async () =>
+  new Response(null, { headers: ACTIONS_CORS_HEADERS });
+
 
 // 2. POST: Handle the Transaction
 export async function POST(req: Request) {
@@ -250,10 +259,12 @@ export async function POST(req: Request) {
     let shippingPhone: string | undefined;
 
     if (isPhysical && body.data) {
-      customerEmail = body.data.email as string;
-      shippingName = body.data.name as string;
-      shippingAddress = body.data.address as string;
-      shippingPhone = body.data.phone as string;
+      const form = body.data as unknown as PhysicalFormData;
+
+      customerEmail = form.email;
+      shippingName = form.name;
+      shippingAddress = form.address;
+      shippingPhone = form.phone;
 
       if (!customerEmail || !shippingName || !shippingAddress) {
         return Response.json(
@@ -319,12 +330,11 @@ export async function POST(req: Request) {
     // Instruction 3: Memo with Order ID (for tracking)
     // This allows us to match on-chain payments to orders
     const memoProgram = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
-    const encoder = new TextEncoder();
     transaction.add(
       new TransactionInstruction({
         keys: [],
         programId: memoProgram,
-        data: encoder.encode(`AC:${orderIdMemo}`)
+        data: Buffer.from(`AC:${orderIdMemo}`)
       })
     );
 
