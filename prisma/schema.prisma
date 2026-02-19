@@ -34,6 +34,7 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   REFUNDED
+  PAID
 }
 
 enum ActionType {
@@ -195,7 +196,7 @@ model Order {
   
   // Blockchain details
   transactionSignature String? @unique // Solana tx signature
-  orderIdMemo     String      // Unique ID passed in transaction memo
+  orderIdMemo     String  @unique    // Unique ID passed in transaction memo
   
   // Order status
   status          OrderStatus @default(PENDING)

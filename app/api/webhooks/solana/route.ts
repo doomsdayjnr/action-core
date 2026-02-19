@@ -63,11 +63,13 @@ export async function POST(req: NextRequest) {
           (ix: any) => ix.programId.toString() === 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
         );
 
-        if (memoInstruction && memoInstruction.parsed) {
-          const memoData = memoInstruction.parsed;
+        if (memoInstruction && "data" in memoInstruction) {
+          // Memo data is base64 encoded
+          const memoText = Buffer.from(memoInstruction.data, "base64").toString("utf-8");
+
           // Extract order ID from memo format: "AC:ORDER-ID-HERE"
-          if (memoData.startsWith('AC:')) {
-            targetOrderId = memoData.substring(3);
+          if (memoText.startsWith("AC:")) {
+            targetOrderId = memoText.substring(3);
           }
         }
       } catch (txError) {
@@ -206,7 +208,6 @@ export async function GET(req: NextRequest) {
         details: txDetails ? {
           slot: txDetails.slot,
           blockTime: txDetails.blockTime,
-          confirmations: txDetails.confirmations,
           status: txDetails.meta?.err ? 'failed' : 'confirmed'
         } : null
       }, { headers: ACTIONS_CORS_HEADERS });
