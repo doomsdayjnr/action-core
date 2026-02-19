@@ -34,6 +34,15 @@ const CACHE_TTL = 300;
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW = 60; // seconds
 
+type PaymentData = {
+  email?: string;
+  name?: string;
+  address?: string;
+  phone?: string;
+  amount?: string;
+};
+
+
 /**
  * Generate a unique order ID for memo field
  */
@@ -156,6 +165,7 @@ export async function GET(req: Request) {
     if (isPhysical) {
       links.actions = [
         {
+          type: "post",
           label: `Pay 100 ${tokenSymbol} ${priceDisplay}`,
           href: `/api/actions/spl-token?apiKey=${apiKey}${tokenParam}&type=physical`,
           parameters: [
@@ -170,6 +180,7 @@ export async function GET(req: Request) {
       // Digital/meme token payment
       links.actions = [
         {
+          type: "post",
           label: `Send 100 ${tokenSymbol} ${priceDisplay}`,
           href: `/api/actions/spl-token?apiKey=${apiKey}${tokenParam}`,
           parameters: [
@@ -227,7 +238,8 @@ export async function POST(req: Request) {
     const apiKey = url.searchParams.get("apiKey");
     const tokenSymbol = url.searchParams.get("token") || "USDC";
     const isPhysical = url.searchParams.get("type") === "physical";
-    const customAmount = body.data?.amount as string;
+    const data = body.data as { amount?: string };
+    const customAmount = data?.amount;
 
     if (!apiKey) {
       return Response.json(
@@ -299,10 +311,13 @@ export async function POST(req: Request) {
     let shippingPhone: string | undefined;
 
     if (isPhysical && body.data) {
-      customerEmail = body.data.email as string;
-      shippingName = body.data.name as string;
-      shippingAddress = body.data.address as string;
-      shippingPhone = body.data.phone as string;
+      const form = body.data as unknown as PaymentData;
+
+      customerEmail = form.email;
+      shippingName = form.name;
+      shippingAddress = form.address;
+      shippingPhone = form.phone;
+
 
       if (!customerEmail || !shippingName || !shippingAddress) {
         return Response.json(

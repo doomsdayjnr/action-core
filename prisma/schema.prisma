@@ -89,7 +89,7 @@ model Subscription {
 model Token {
   id            String   @id @default(cuid())
   mintAddress   String   @unique // SPL token mint address
-  symbol        String   // e.g., "USDC", "BONK", "MYMEME"
+  symbol String @unique  // e.g., "USDC", "BONK", "MYMEME"
   name          String   // e.g., "USD Coin", "Bonk"
   decimals      Int      @default(6) // Token decimals
   logoUrl       String?  // Token logo image URL
