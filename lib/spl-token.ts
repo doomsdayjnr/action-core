@@ -3,7 +3,8 @@ import {
   PublicKey, 
   Transaction, 
   SystemProgram,
-  LAMPORTS_PER_SOL 
+  LAMPORTS_PER_SOL,
+  TransactionInstruction 
 } from "@solana/web3.js";
 import {
   createTransferInstruction,
@@ -198,12 +199,11 @@ export async function buildSPLTokenTransaction(
 
   // Instruction 3: Memo with order ID
   const memoProgram = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
-  const encoder = new TextEncoder();
   transaction.add(
     new TransactionInstruction({
       keys: [],
       programId: memoProgram,
-      data: encoder.encode(orderMemo)
+      data: Buffer.from(orderMemo, "utf-8")
     })
   );
 
