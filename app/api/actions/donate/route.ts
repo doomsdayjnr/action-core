@@ -15,7 +15,7 @@ import {
 } from "@solana/web3.js";
 import { prisma } from "../../../../lib/prisma";
 import { redis } from "../../../../lib/redis";
-import { connection } from "../../../../lib/solana";
+import { getConnection } from "../../../../lib/solana";
 
 // Your Fee Wallet (Environment Variable)
 const MYRA_FEE_WALLET = new PublicKey(process.env.MYRA_FEE_WALLET!);
@@ -340,6 +340,7 @@ export async function POST(req: Request) {
 
     // Set transaction properties
     transaction.feePayer = account;
+    const connection = getConnection();
     const { blockhash } = await connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
 

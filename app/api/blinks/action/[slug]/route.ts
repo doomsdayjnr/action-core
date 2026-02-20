@@ -9,7 +9,7 @@ import {
 } from "@solana/actions";
 import { prisma } from '../../../../../lib/prisma';
 import { redis } from '../../../../../lib/redis';
-import { connection } from '../../../../../lib/solana';
+import { getConnection } from '../../../../../lib/solana';
 import { buildSPLTokenTransaction, getTokenDecimals } from '../../../../../lib/spl-token';
 import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
@@ -245,6 +245,7 @@ export async function POST(
     }
 
     transaction.feePayer = account;
+    const connection = getConnection();
     const { blockhash } = await connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
 

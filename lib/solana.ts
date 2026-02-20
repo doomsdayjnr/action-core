@@ -1,38 +1,33 @@
 import { Connection, Commitment } from "@solana/web3.js";
 
-// Use 'confirmed' to balance speed and reliability for Blinks
 const DEFAULT_COMMITMENT: Commitment = "confirmed";
 
-const globalForSolana = global as unknown as { solanaConnection: Connection };
+let cachedConnection: Connection | null = null;
 
-export const connection =
-  globalForSolana.solanaConnection ||
-  new Connection(
-    process.env.SOLANA_RPC_URL + process.env.NEXT_PUBLIC_HELIUS_KEY || "https://api.mainnet-beta.solana.com",
-    {
-      commitment: DEFAULT_COMMITMENT,
-      // Custom retry config for resilience
-      confirmTransactionInitialTimeout: 60000,
-    }
-  );
+export function getConnection(): Connection {
+  if (cachedConnection) return cachedConnection;
 
-if (process.env.NODE_ENV !== "production") {
-  globalForSolana.solanaConnection = connection;
+  const rpcUrl = process.env.SOLANA_RPC_URL;
+
+  if (!rpcUrl || !rpcUrl.startsWith("http")) {
+    throw new Error("Invalid or missing SOLANA_RPC_URL");
+  }
+
+  cachedConnection = new Connection(rpcUrl, {
+    commitment: DEFAULT_COMMITMENT,
+    confirmTransactionInitialTimeout: 60000,
+  });
+
+  return cachedConnection;
 }
 
-/**
- * Helper to fetch the latest blockhash with the engine's default commitment.
- * Essential for building transactions in route.ts.
- */
 export async function getLatestBlockhash() {
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-  return { blockhash, lastValidBlockHeight };
+  const connection = getConnection();
+  return connection.getLatestBlockhash();
 }
 
-/**
- * Confirm a transaction with proper retry logic
- */
 export async function confirmTransaction(signature: string): Promise<boolean> {
+  const connection = getConnection();
   try {
     const result = await connection.confirmTransaction(signature, "confirmed");
     return !result.value.err;
@@ -41,5 +36,3 @@ export async function confirmTransaction(signature: string): Promise<boolean> {
     return false;
   }
 }
-
-export default connection;
