@@ -14,7 +14,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAccount
 } from "@solana/spl-token";
-import { connection } from "./solana";
+import { getConnection } from "./solana";
 
 /**
  * SPL Token Utility Functions
@@ -36,6 +36,7 @@ export const COMMON_TOKENS = {
 export async function getTokenDecimals(mintAddress: string): Promise<number> {
   try {
     const mintPublicKey = new PublicKey(mintAddress);
+    const connection = getConnection();
     const mintInfo = await connection.getTokenSupply(mintPublicKey);
     return mintInfo.value.decimals;
   } catch (error) {
@@ -53,6 +54,7 @@ export async function tokenAccountExists(
 ): Promise<boolean> {
   try {
     const ata = await getAssociatedTokenAddress(mint, owner);
+    const connection = getConnection();
     await getAccount(connection, ata);
     return true;
   } catch {
@@ -79,6 +81,7 @@ export async function createSPLTokenTransfer(
 
   // Check if sender ATA exists (should exist if they have tokens)
   try {
+    const connection = getConnection();
     await getAccount(connection, fromATA);
   } catch {
     throw new Error("Sender does not have a token account for this mint");
@@ -86,6 +89,7 @@ export async function createSPLTokenTransfer(
 
   // Create recipient ATA if it doesn't exist
   try {
+    const connection = getConnection();
     await getAccount(connection, toATA);
   } catch {
     // ATA doesn't exist, create it
@@ -142,6 +146,7 @@ export async function buildSPLTokenTransaction(
 
   // Verify customer has tokens
   try {
+    const connection = getConnection();
     await getAccount(connection, customerATA);
   } catch {
     throw new Error("Customer does not have a token account for this mint");
@@ -149,6 +154,7 @@ export async function buildSPLTokenTransaction(
 
   // Create merchant ATA if needed
   try {
+    const connection = getConnection();
     await getAccount(connection, merchantATA);
   } catch {
     transaction.add(
@@ -163,6 +169,7 @@ export async function buildSPLTokenTransaction(
 
   // Create Myra fee ATA if needed
   try {
+    const connection = getConnection();
     await getAccount(connection, myraATA);
   } catch {
     transaction.add(
