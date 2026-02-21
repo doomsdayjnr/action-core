@@ -689,19 +689,8 @@ function DashboardContent() {
     setError(null);
     try {
       // Fetch merchant
-      const merchantRes = await fetch(`/api/merchant?wallet=${encodeURIComponent(walletAddress)}`);
-      if (!merchantRes.ok) {
-        let merchantError = 'Failed to load merchant';
-        try {
-          const errorBody = await merchantRes.json();
-          if (typeof errorBody?.error === 'string' && errorBody.error.trim().length > 0) {
-            merchantError = errorBody.error;
-          }
-        } catch {
-          // ignore parse errors and keep generic message
-        }
-        throw new Error(merchantError);
-      }
+      const merchantRes = await fetch(`/api/merchant?wallet=${walletAddress}`);
+      if (!merchantRes.ok) throw new Error('Failed to load merchant');
       const merchantData = await merchantRes.json();
       setMerchant(merchantData);
 
