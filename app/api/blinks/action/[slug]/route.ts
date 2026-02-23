@@ -7,21 +7,36 @@ import {
   ActionPostRequest,
   LinkedAction
 } from "@solana/actions";
+import { 
+  PublicKey, 
+  Transaction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+  TransactionInstruction
+} from "@solana/web3.js";
+import {
+  createTransferInstruction,
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAccount
+} from "@solana/spl-token";
 import { prisma } from '../../../../../lib/prisma';
 import { redis } from '../../../../../lib/redis';
 import { getConnection } from '../../../../../lib/solana';
-import { buildSPLTokenTransaction, getTokenDecimals } from '../../../../../lib/spl-token';
-import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-const MYRA_FEE_WALLET = new PublicKey(process.env.MYRA_FEE_WALLET!);
+const MYRA_FEE_WALLET = new PublicKey(process.env.MYRA_FEE_WALLET || '11111111111111111111111111111111');
 const SERVICE_FEE_PERCENT = 0.01;
 
-type ServiceData = {
-  email?: string;
-  name?: string;
-  address?: string;
+// USDC mint address
+const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+
+type PhysicalFormData = {
+  email: string;
+  name: string;
+  address: string;
   phone?: string;
-  amount?: string;
 };
 
 function generateOrderId(): string {
@@ -38,21 +53,19 @@ async function checkRateLimit(walletAddress: string): Promise<boolean> {
 }
 
 /**
- * GET: Serve Solana Actions metadata for a Direct Blink
+ * GET: Return Blink metadata for Solana Actions
  */
 export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  request: NextRequest,
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await context.params;
+    const { slug } = params;
 
     const blink = await prisma.blink.findUnique({
       where: { slug },
       include: {
-        merchant: {
-          include: { subscription: true }
-        },
+        merchant: { include: { subscription: true } },
         token: true
       }
     });
@@ -61,7 +74,7 @@ export async function GET(
       return Response.json(
         { 
           title: "Not Found",
-          icon: "https://actioncore.com/error.png",
+          icon: "https://memelend.tech/error.png",
           description: "This Blink is no longer available.",
           label: "Unavailable",
           disabled: true
@@ -70,20 +83,7 @@ export async function GET(
       );
     }
 
-    if (!blink.merchant.subscription || blink.merchant.subscription.status !== 'ACTIVE') {
-      return Response.json(
-        { 
-          title: "Inactive",
-          icon: "https://actioncore.com/error.png",
-          description: "Merchant subscription is inactive.",
-          label: "Unavailable",
-          disabled: true
-        } as ActionGetResponse,
-        { status: 403, headers: ACTIONS_CORS_HEADERS }
-      );
-    }
-
-    // Build action links based on type
+    // Build action links
     const links: { actions: LinkedAction[] } = {
       actions: []
     };
@@ -92,7 +92,7 @@ export async function GET(
 
     if (blink.actionType === 'PHYSICAL') {
       links.actions = [{
-        type: "post",
+        type: 'post',
         label: `Buy for ${blink.amount} ${blink.currency}`,
         href: baseUrl,
         parameters: [
@@ -103,9 +103,9 @@ export async function GET(
         ]
       }];
     } else {
-      // Simple payment (TOKEN, DONATION, TRANSFER)
+      // Simple payment
       links.actions = [{
-        type: "post",
+        type: 'post',
         label: blink.label || `Pay ${blink.amount} ${blink.currency}`,
         href: baseUrl
       }];
@@ -113,7 +113,7 @@ export async function GET(
 
     const payload: ActionGetResponse = {
       title: blink.title,
-      icon: blink.icon,
+      icon: blink.icon || blink.imageUrl || 'https://memelend.tech/default.png',
       description: blink.description,
       label: blink.label || `Pay ${blink.amount} ${blink.currency}`,
       links
@@ -126,7 +126,7 @@ export async function GET(
     return Response.json(
       { 
         title: "Error",
-        icon: "https://actioncore.com/error.png",
+        icon: "https://memelend.tech/error.png",
         description: "Failed to load Blink.",
         label: "Error",
         disabled: true
@@ -137,16 +137,16 @@ export async function GET(
 }
 
 /**
- * POST: Handle payment for a Direct Blink
+ * POST: Create transaction for the Blink
  */
 export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  request: NextRequest,
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const body: ActionPostRequest = await req.json();
+    const body: ActionPostRequest = await request.json();
     const account = new PublicKey(body.account);
-    const { slug } = await context.params;
+    const { slug } = params;
 
     const blink = await prisma.blink.findUnique({
       where: { slug },
@@ -169,8 +169,7 @@ export async function POST(
     // Extract shipping details if physical
     let customerEmail, shippingName, shippingAddress, shippingPhone;
     if (blink.actionType === 'PHYSICAL' && body.data) {
-
-      const form = body.data as unknown as ServiceData;
+      const form = body.data as unknown as PhysicalFormData;
 
       customerEmail = form.email;
       shippingName = form.name;
@@ -200,7 +199,7 @@ export async function POST(
         amount: totalAmount,
         currency: blink.currency,
         tokenMintId: blink.tokenMintId,
-        tokenDecimals: blink.token?.decimals || 9,
+        tokenDecimals: blink.token?.decimals || (blink.currency === 'USDC' ? 6 : 9),
         feeAmount,
         merchantAmount,
         orderIdMemo,
@@ -210,11 +209,10 @@ export async function POST(
 
     // Build transaction
     const merchantWallet = new PublicKey(blink.merchant.payoutAddress || blink.merchant.walletAddress);
-    let transaction: Transaction;
+    const transaction = new Transaction();
 
     if (blink.currency === 'SOL') {
       // SOL transfer
-      transaction = new Transaction();
       transaction.add(
         SystemProgram.transfer({
           fromPubkey: account,
@@ -229,20 +227,94 @@ export async function POST(
           lamports: Math.round(feeAmount * LAMPORTS_PER_SOL)
         })
       );
-    } else if (blink.token) {
-      // SPL token transfer
-      transaction = await buildSPLTokenTransaction(
-        account,
-        merchantWallet,
-        MYRA_FEE_WALLET,
-        blink.token.mintAddress,
-        totalAmount,
-        blink.token.decimals,
-        `AC:${orderIdMemo}`
+    } else if (blink.currency === 'USDC') {
+      // USDC SPL token transfer
+      const mint = USDC_MINT;
+      const decimals = 6;
+      
+      // Calculate amounts with decimals
+      const totalAmountRaw = Math.round(totalAmount * Math.pow(10, decimals));
+      const merchantAmountRaw = Math.round(merchantAmount * Math.pow(10, decimals));
+      const feeAmountRaw = totalAmountRaw - merchantAmountRaw; // Avoid rounding errors
+
+      // Get token accounts
+      const buyerATA = await getAssociatedTokenAddress(mint, account);
+      const merchantATA = await getAssociatedTokenAddress(mint, merchantWallet);
+      const feeATA = await getAssociatedTokenAddress(mint, MYRA_FEE_WALLET);
+
+      // Check if buyer has USDC account
+      try {
+        const connection = getConnection();
+        await getAccount(connection, buyerATA);
+      } catch {
+        return Response.json({ 
+          message: "You don't have a USDC token account. Please create one first." 
+        }, { status: 400, headers: ACTIONS_CORS_HEADERS });
+      }
+
+      // Create merchant ATA if needed
+      try {
+        const connection = getConnection();
+        await getAccount(connection, merchantATA);
+      } catch {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            account,
+            merchantATA,
+            merchantWallet,
+            mint
+          )
+        );
+      }
+
+      // Create fee ATA if needed
+      try {
+        const connection = getConnection();
+        await getAccount(connection, feeATA);
+      } catch {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            account,
+            feeATA,
+            MYRA_FEE_WALLET,
+            mint
+          )
+        );
+      }
+
+      // Transfer to merchant (99%)
+      transaction.add(
+        createTransferInstruction(
+          buyerATA,
+          merchantATA,
+          account,
+          merchantAmountRaw
+        )
       );
+
+      // Transfer fee to platform (1%)
+      transaction.add(
+        createTransferInstruction(
+          buyerATA,
+          feeATA,
+          account,
+          feeAmountRaw
+        )
+      );
+
     } else {
-      return Response.json({ message: "Invalid currency configuration" }, { status: 500, headers: ACTIONS_CORS_HEADERS });
+      return Response.json({ message: `${blink.currency} payments not yet supported` }, { status: 501, headers: ACTIONS_CORS_HEADERS });
     }
+
+    // Add memo with order ID
+    const memoProgram = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+    transaction.add(
+      new TransactionInstruction({
+        keys: [],
+        programId: memoProgram,
+        data: Buffer.from(`AC:${orderIdMemo}`)
+      })
+    );
 
     transaction.feePayer = account;
     const connection = getConnection();
@@ -253,7 +325,7 @@ export async function POST(
       fields: {
         type: "transaction",
         transaction,
-        message: `Order ${orderIdMemo} created! Complete payment.`,
+        message: `Order ${orderIdMemo} created! Complete payment of ${totalAmount} ${blink.currency}.`,
       },
     });
 
