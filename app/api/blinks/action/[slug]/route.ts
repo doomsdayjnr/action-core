@@ -57,10 +57,10 @@ async function checkRateLimit(walletAddress: string): Promise<boolean> {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
 
     const blink = await prisma.blink.findUnique({
       where: { slug },
@@ -141,12 +141,12 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const body: ActionPostRequest = await request.json();
     const account = new PublicKey(body.account);
-    const { slug } = params;
+    const { slug } = await params;
 
     const blink = await prisma.blink.findUnique({
       where: { slug },
