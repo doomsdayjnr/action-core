@@ -3,27 +3,32 @@ import { ACTIONS_CORS_HEADERS, ActionsJson } from "@solana/actions";
 export const GET = async () => {
   const payload: ActionsJson = {
     rules: [
-      // Rule 1: SOL Donations
+      // Rule 1: Direct Blinks (most important for X/Twitter)
+      {
+        pathPattern: "/b/**",
+        apiPath: "/api/blinks/action/**",
+      },
+      // Rule 2: SOL Donations
       {
         pathPattern: "/donate",
         apiPath: "/api/actions/donate",
       },
-      // Rule 2: Physical products with SOL
+      // Rule 3: Physical products with SOL
       {
         pathPattern: "/buy",
         apiPath: "/api/actions/donate?type=physical",
       },
-      // Rule 3: SPL Token payments (USDC, meme tokens)
+      // Rule 4: SPL Token payments (USDC, meme tokens)
       {
         pathPattern: "/pay",
         apiPath: "/api/actions/spl-token",
       },
-      // Rule 4: SPL Token with physical goods
+      // Rule 5: SPL Token with physical goods
       {
         pathPattern: "/token-buy",
         apiPath: "/api/actions/spl-token?type=physical",
       },
-      // Rule 5: Generic mapping for any future actions
+      // Rule 6: Generic mapping for any future actions
       {
         pathPattern: "/api/actions/**",
         apiPath: "/api/actions/**",
