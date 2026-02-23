@@ -87,6 +87,11 @@ export async function GET(
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '-1',
+        'Vary': 'Accept-Encoding',
         ...ACTIONS_CORS_HEADERS
       }
     });
