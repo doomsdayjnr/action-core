@@ -26,6 +26,13 @@ import { prisma } from '../../../../../lib/prisma';
 import { redis } from '../../../../../lib/redis';
 import { getConnection } from '../../../../../lib/solana';
 
+const ACTION_HEADERS = {
+  ...ACTIONS_CORS_HEADERS,
+  'X-Action-Version': '2.0',
+  'X-Blockchain-Ids': 'solana',
+};
+
+
 const MYRA_FEE_WALLET = new PublicKey(process.env.MYRA_FEE_WALLET || '11111111111111111111111111111111');
 const SERVICE_FEE_PERCENT = 0.01;
 
@@ -348,5 +355,5 @@ export async function POST(
 }
 
 export const OPTIONS = async () => {
-  return new Response(null, { headers: ACTIONS_CORS_HEADERS });
+  return new Response(null, { status: 204, headers: ACTION_HEADERS });
 };
