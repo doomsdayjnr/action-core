@@ -1083,7 +1083,7 @@ function DashboardContent() {
                       <h3 className="text-gray-900 font-semibold text-lg mb-2">Your first payment is waiting!</h3>
                       <p className="text-gray-500 mb-6 max-w-sm mx-auto">Create a Blink and share it with your customers. Most merchants get their first payment within 24 hours.</p>
                       <button 
-                        onClick={() => setActiveTab('blinks')}
+                        onClick={() => setShowCreateBlink(true)}
                         className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-purple-200"
                       >
                         Create Your First Blink →
@@ -1141,7 +1141,7 @@ function DashboardContent() {
                   <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-900">My Blinks</h2>
                     <button 
-                      onClick={() => setActiveTab('blinks')}
+                      onClick={() => setShowCreateBlink(true)}
                       className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg"
                     >
                       + Create Blink
