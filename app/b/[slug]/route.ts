@@ -11,6 +11,9 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Max-Age': '86400',
+  'X-Action-Version': '2.0',
+  'X-Blockchain-Ids': 'solana',
+  'Access-Control-Expose-Headers': 'X-Action-Version, X-Blockchain-Ids',
 };
 
 export async function GET(
