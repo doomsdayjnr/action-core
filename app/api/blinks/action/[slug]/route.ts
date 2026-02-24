@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { 
   ActionPostResponse, 
-  ACTIONS_CORS_HEADERS, 
   createPostResponse, 
   ActionGetResponse, 
   ActionPostRequest,
@@ -26,10 +25,15 @@ import { prisma } from '../../../../../lib/prisma';
 import { redis } from '../../../../../lib/redis';
 import { getConnection } from '../../../../../lib/solana';
 
-const ACTION_HEADERS = {
-  ...ACTIONS_CORS_HEADERS,
+// CORS headers for Solana Actions
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
   'X-Action-Version': '2.0',
   'X-Blockchain-Ids': 'solana',
+  'Access-Control-Expose-Headers': 'X-Action-Version, X-Blockchain-Ids',
 };
 
 
@@ -86,7 +90,7 @@ export async function GET(
           label: "Unavailable",
           disabled: true
         } as ActionGetResponse,
-        { status: 404, headers: ACTIONS_CORS_HEADERS }
+        { status: 404, headers: CORS_HEADERS }
       );
     }
 
@@ -126,7 +130,7 @@ export async function GET(
       links
     };
 
-    return Response.json(payload, { headers: ACTIONS_CORS_HEADERS });
+    return Response.json(payload, { headers: CORS_HEADERS });
 
   } catch (error) {
     console.error('[Blink Action GET] Error:', error);
@@ -138,7 +142,7 @@ export async function GET(
         label: "Error",
         disabled: true
       } as ActionGetResponse,
-      { status: 500, headers: ACTIONS_CORS_HEADERS }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
@@ -164,13 +168,13 @@ export async function POST(
     });
 
     if (!blink || !blink.active) {
-      return Response.json({ message: "Blink not found" }, { status: 404, headers: ACTIONS_CORS_HEADERS });
+      return Response.json({ message: "Blink not found" }, { status: 404, headers: CORS_HEADERS });
     }
 
     // Rate limiting
     const walletAddress = account.toString();
     if (!(await checkRateLimit(walletAddress))) {
-      return Response.json({ message: "Rate limit exceeded" }, { status: 429, headers: ACTIONS_CORS_HEADERS });
+      return Response.json({ message: "Rate limit exceeded" }, { status: 429, headers: CORS_HEADERS });
     }
 
     // Extract shipping details if physical
@@ -184,7 +188,7 @@ export async function POST(
       shippingPhone = form.phone;
 
       if (!customerEmail || !shippingName || !shippingAddress) {
-        return Response.json({ message: "Missing shipping information" }, { status: 400, headers: ACTIONS_CORS_HEADERS });
+        return Response.json({ message: "Missing shipping information" }, { status: 400, headers: CORS_HEADERS });
       }
     }
 
@@ -256,7 +260,7 @@ export async function POST(
       } catch {
         return Response.json({ 
           message: "You don't have a USDC token account. Please create one first." 
-        }, { status: 400, headers: ACTIONS_CORS_HEADERS });
+        }, { status: 400, headers: CORS_HEADERS });
       }
 
       // Create merchant ATA if needed
@@ -310,7 +314,7 @@ export async function POST(
       );
 
     } else {
-      return Response.json({ message: `${blink.currency} payments not yet supported` }, { status: 501, headers: ACTIONS_CORS_HEADERS });
+      return Response.json({ message: `${blink.currency} payments not yet supported` }, { status: 501, headers: CORS_HEADERS });
     }
 
     // Add memo with order ID
@@ -343,17 +347,17 @@ export async function POST(
       JSON.stringify({ orderId: order.id, merchantId: blink.merchantId })
     );
 
-    return Response.json(payload, { headers: ACTIONS_CORS_HEADERS });
+    return Response.json(payload, { headers: CORS_HEADERS });
 
   } catch (error: any) {
     console.error('[Blink Action POST] Error:', error);
     return Response.json(
       { message: error.message || "Internal server error" },
-      { status: 500, headers: ACTIONS_CORS_HEADERS }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
 
 export const OPTIONS = async () => {
-  return new Response(null, { status: 204, headers: ACTION_HEADERS });
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
 };
