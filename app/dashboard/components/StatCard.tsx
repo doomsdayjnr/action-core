@@ -1,9 +1,22 @@
-export function StatCard({ title, value, subtext }: { title: string, value: string | number, subtext?: string }) {
+export function StatCard({ title, value, subtitle, trend, trendUp }: {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  trend?: string;
+  trendUp?: boolean;
+}) {
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-      <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      {subtext && <p className="text-xs text-green-600 mt-1">{subtext}</p>}
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <p className="text-sm font-medium text-gray-600">{title}</p>
+      <div className="mt-2 flex items-baseline gap-2">
+        <p className="text-3xl font-bold text-gray-900">{value}</p>
+        {trend && (
+          <span className={`text-sm font-medium ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
+            {trend}
+          </span>
+        )}
+      </div>
+      {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
     </div>
   );
 }

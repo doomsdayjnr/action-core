@@ -5,8 +5,7 @@ export function BlinksListContent({ blinks, copyBlinkUrl, setShowCreateBlink }: 
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       <div className="p-6 border-b border-gray-100">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Your Blinks</h2>
-          <p className="text-sm text-gray-500">Links currently accepting payments.</p>
+          <h2 className="text-xl font-bold text-gray-900">My Blinks</h2>
         </div>
 
         <button 

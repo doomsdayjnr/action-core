@@ -3,12 +3,14 @@ import { StatCard } from './StatCard';
 interface OverviewProps {
   orders: any[];
   blinks: any[];
+  merchant: any;
+  confirmedOrders: number;
   totalRevenue: number;
   activeBlinks: number;
   setShowCreateBlink: (show: boolean) => void;
 }
 
-export function OverviewContent({ orders, blinks, totalRevenue, activeBlinks, setShowCreateBlink }: OverviewProps) {
+export function OverviewContent({ orders, blinks, merchant, confirmedOrders, totalRevenue, activeBlinks, setShowCreateBlink }: OverviewProps) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header with Create Button */}
@@ -41,10 +43,26 @@ export function OverviewContent({ orders, blinks, totalRevenue, activeBlinks, se
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="💰 Total Revenue" value={`${totalRevenue.toFixed(2)} SOL`} />
-        <StatCard title="⚡ Active Blinks" value={activeBlinks} />
-        <StatCard title="🛒 Total Orders" value={orders.length} />
-        <StatCard title="👀 Total Clicks" value={blinks.reduce((sum, b) => sum + (b.clickCount || 0), 0)} />
+        <StatCard 
+          title="💰 Total Revenue" 
+          value={totalRevenue > 0 ? `${totalRevenue.toFixed(2)} SOL` : "—"}
+          subtitle={totalRevenue > 0 ? "Across all orders" : "Your first payment is waiting!"}
+        />
+        <StatCard 
+          title="⚡ Active Blinks" 
+          value={activeBlinks}
+          subtitle={`${merchant.subscription?.activeBlinksLimit || 3} limit on ${merchant.subscription?.tier || 'FREE'} plan`}
+        />
+        <StatCard 
+          title="🛒 Total Orders" 
+          value={orders.length}
+          subtitle={`${confirmedOrders} confirmed • ${orders.filter(o => o.status === 'PENDING').length} pending`}
+        />
+        <StatCard 
+          title="👀 Total Clicks" 
+          value={blinks.reduce((sum, b) => sum + b.clickCount, 0)}
+          subtitle={`Across ${blinks.length} Blink${blinks.length !== 1 ? 's' : ''}`}
+        />
       </div>
 
       {/* Recent Orders Preview */}
