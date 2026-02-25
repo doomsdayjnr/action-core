@@ -1,3 +1,5 @@
+import {Icons} from "../page";
+
 export function BlinksListContent({ blinks, copyBlinkUrl, setShowCreateBlink }: { blinks: any[], copyBlinkUrl: (url: string) => void, setShowCreateBlink: (val: boolean) => void }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -15,21 +17,43 @@ export function BlinksListContent({ blinks, copyBlinkUrl, setShowCreateBlink }: 
         </button>
       </div>
       <div className="divide-y divide-gray-100">
-        {blinks.map((blink) => (
-          <div key={blink.id} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
-            <div className="flex gap-4 items-center">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 font-bold">⚡</div>
-              <div>
-                <h3 className="font-semibold text-gray-900">{blink.title}</h3>
-                <p className="text-sm text-gray-500">{blink.amount} {blink.currency} • {blink.clickCount} clicks</p>
+        {blinks.slice(0, 3).map((blink) => (
+          <div key={blink.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-medium text-gray-900 truncate">{blink.title}</h3>
+                {blink.active ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    Active
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                    Inactive
+                  </span>
+                )}
               </div>
+              <p className="text-sm text-gray-500 mt-1">
+                {blink.amount} {blink.currency} • {blink.clickCount} clicks • {blink.orderCount} orders
+              </p>
             </div>
-            <button 
-              onClick={() => copyBlinkUrl(blink.publicUrl)}
-              className="px-4 py-2 text-sm font-medium text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-            >
-              Copy Link
-            </button>
+            <div className="flex items-center gap-2 ml-4">
+              {blink.publicUrl && (
+                <button
+                  onClick={() => copyBlinkUrl(blink.publicUrl!)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                  title="Copy link"
+                >
+                  <Icons.Copy />
+                </button>
+              )}
+              <button
+                onClick={() => window.open(blink.publicUrl || '#', '_blank')}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                title="Open"
+              >
+                <Icons.External />
+              </button>
+            </div>
           </div>
         ))}
       </div>
