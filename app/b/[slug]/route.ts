@@ -31,7 +31,6 @@ export async function GET(
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${request.headers.get('host')}`;
     const actionApiUrl = `${baseUrl}/api/blinks/action/${blink.id}`;
     
-    // The "Steve Jobs" UI: Clean, Focused, and Integrated
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -49,9 +48,9 @@ export async function GET(
 <body class="flex items-center justify-center min-h-screen p-4">
   <div class="max-w-md w-full glass rounded-3xl shadow-2xl overflow-hidden border border-white">
     ${blink.imageUrl ? `
-      <div class="h-64 overflow-hidden relative">
+      <div class="h-64 overflow-hidden relative border-b border-gray-100">
         <img src="${blink.imageUrl}" class="w-full h-full object-cover" alt="Product" />
-        <div class="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full text-sm font-bold text-purple-600 shadow-sm">
+        <div class="absolute top-4 right-4 bg-white/95 px-3 py-1 rounded-full text-sm font-bold text-purple-600 shadow-sm border border-white">
           ${blink.amount} ${blink.currency}
         </div>
       </div>
@@ -62,28 +61,37 @@ export async function GET(
       <p class="text-gray-500 text-sm mb-8 leading-relaxed">${escapeHtml(blink.description)}</p>
 
       <form id="blink-form" class="space-y-4">
-        <div class="space-y-1">
-          <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Full Name</label>
-          <input required name="name" type="text" placeholder="John Doe" 
-            class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all" />
+        <div class="grid grid-cols-1 gap-4">
+          <div class="space-y-1">
+            <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Full Name</label>
+            <input required name="name" type="text" placeholder="John Doe" 
+              class="w-full px-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all" />
+          </div>
         </div>
 
-        <div class="space-y-1">
-          <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Email Address</label>
-          <input required name="email" type="email" placeholder="john@example.com" 
-            class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-1">
+            <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Email Address</label>
+            <input required name="email" type="email" placeholder="john@example.com" 
+              class="w-full px-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all" />
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Phone (Optional)</label>
+            <input name="phone" type="tel" placeholder="+1..." 
+              class="w-full px-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all" />
+          </div>
         </div>
 
         <div class="space-y-1">
           <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Shipping Address</label>
           <textarea required name="address" rows="2" placeholder="Street, City, Zip, Country" 
-            class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"></textarea>
+            class="w-full px-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"></textarea>
         </div>
 
         <button type="submit" id="submit-btn" 
-          class="w-full py-4 mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2">
+          class="w-full py-4 mt-6 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-xl shadow-purple-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
           <span>${blink.label || 'Buy Now'}</span>
-          <span class="opacity-70">•</span>
+          <span class="opacity-40 font-light">|</span>
           <span>${blink.amount} ${blink.currency}</span>
         </button>
       </form>
@@ -92,14 +100,13 @@ export async function GET(
     </div>
     
     <div class="p-4 bg-gray-50/50 border-t border-gray-100 text-center">
-      <p class="text-[10px] text-gray-400 font-medium">SECURE SOLANA CHECKOUT • ACTIONCORE</p>
+      <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Secure Solana Checkout • ActionCore</p>
     </div>
   </div>
 
   <script>
     const form = document.getElementById('blink-form');
     const btn = document.getElementById('submit-btn');
-    const status = document.getElementById('status');
 
     form.onsubmit = async (e) => {
       e.preventDefault();
@@ -109,18 +116,12 @@ export async function GET(
       const formData = new FormData(form);
       const params = Object.fromEntries(formData.entries());
 
-      // THE MAGIC STEP:
-      // We redirect to a "Universal Blink Player" or trigger the solana-action protocol.
-      // This ensures the wallet opens and handles the transaction return.
-      
+      // We redirect to the official Solana Blink player.
+      // This player handles the wallet connection and signature flow.
       const actionUrl = "${actionApiUrl}";
       const queryParams = new URLSearchParams(params).toString();
       
-      // We use the solana-action: protocol which is supported by Phantom/Solflare
-      const solanaActionLink = "solana-action:" + actionUrl + "?" + queryParams;
-      
-      // If the user is on mobile, this will open their wallet immediately.
-      // On desktop, we redirect to a player that handles the wallet connection.
+      // Using the industry standard player to ensure the wallet pops up correctly
       window.location.href = "https://blinks.solana.com/" + actionUrl + "?" + queryParams;
     };
   </script>
@@ -138,6 +139,7 @@ export async function GET(
     });
 
   } catch (error) {
+    console.error('Blink Error:', error);
     return new NextResponse('Error', { status: 500 });
   }
 }
