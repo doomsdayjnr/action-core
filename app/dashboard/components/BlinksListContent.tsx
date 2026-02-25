@@ -1,8 +1,18 @@
-export function BlinksListContent({ blinks, copyBlinkUrl }: { blinks: any[], copyBlinkUrl: (url: string) => void }) {
+export function BlinksListContent({ blinks, copyBlinkUrl, setShowCreateBlink }: { blinks: any[], copyBlinkUrl: (url: string) => void, setShowCreateBlink: (val: boolean) => void }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       <div className="p-6 border-b border-gray-100">
-        <h2 className="text-xl font-bold text-gray-900">Your Blinks</h2>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Your Blinks</h2>
+          <p className="text-sm text-gray-500">Links currently accepting payments.</p>
+        </div>
+
+        <button 
+          onClick={() => setShowCreateBlink(true)}
+          className="px-4 py-2 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          + Create New
+        </button>
       </div>
       <div className="divide-y divide-gray-100">
         {blinks.map((blink) => (
