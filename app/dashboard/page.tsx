@@ -400,7 +400,7 @@ function DashboardContent() {
                 <div className="flex items-center justify-center h-full">Loading...</div>
               ) : (
                 <>
-                  {activeTab === 'overview' && (
+                  {activeTab === 'overview' && merchant && (
                     <OverviewContent 
                       orders={orders} 
                       blinks={blinks}

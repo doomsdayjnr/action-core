@@ -64,7 +64,7 @@ export function OverviewContent({ orders, blinks, merchant, confirmedOrders, tot
         <StatCard 
           title="⚡ Active Blinks" 
           value={activeBlinks}
-          subtitle={`${merchant.subscription?.activeBlinksLimit || 3} limit on ${merchant.subscription?.tier || 'FREE'} plan`}
+          subtitle={`${merchant?.subscription?.activeBlinksLimit || 3} limit on ${merchant?.subscription?.tier || 'FREE'} plan`}
         />
         <StatCard 
           title="🛒 Total Orders" 
