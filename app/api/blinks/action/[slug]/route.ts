@@ -73,7 +73,7 @@ export async function GET(
     const { slug } = await params;
 
     const blink = await prisma.blink.findUnique({
-      where: { slug },
+      where: { id: slug },
       include: {
         merchant: { include: { subscription: true } },
         token: true
@@ -159,7 +159,7 @@ export async function POST(
     const { slug } = await params;
 
     const blink = await prisma.blink.findUnique({
-      where: { slug },
+      where: { id: slug },
       include: {
         merchant: { include: { subscription: true } },
         token: true
@@ -356,6 +356,8 @@ export async function POST(
     );
   }
 }
+
+// Till
 
 export const OPTIONS = async () => {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
