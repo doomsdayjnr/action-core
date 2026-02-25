@@ -36,7 +36,6 @@ const CORS_HEADERS = {
   'Access-Control-Expose-Headers': 'X-Action-Version, X-Blockchain-Ids',
 };
 
-
 const MYRA_FEE_WALLET = new PublicKey(process.env.MYRA_FEE_WALLET || '11111111111111111111111111111111');
 const SERVICE_FEE_PERCENT = 0.01;
 
