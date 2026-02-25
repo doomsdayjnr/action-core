@@ -104,25 +104,73 @@ export async function GET(
     </div>
   </div>
 
+  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
   <script>
     const form = document.getElementById('blink-form');
     const btn = document.getElementById('submit-btn');
 
     form.onsubmit = async (e) => {
       e.preventDefault();
-      btn.disabled = true;
-      btn.innerHTML = 'Connecting to Wallet...';
       
-      const formData = new FormData(form);
-      const params = Object.fromEntries(formData.entries());
+      // 1. Check if the user has a wallet
+      const isPhantomInstalled = window.solana && window.solana.isPhantom;
+      if (!isPhantomInstalled) {
+        alert("Please install a Solana wallet (like Phantom) to complete your purchase.");
+        window.open("https://phantom.app/", "_blank");
+        return;
+      }
 
-      // We redirect to the official Solana Blink player.
-      // This player handles the wallet connection and signature flow.
-      const actionUrl = "${actionApiUrl}";
-      const queryParams = new URLSearchParams(params).toString();
-      
-      // Using the industry standard player to ensure the wallet pops up correctly
-      window.location.href = "https://blinks.solana.com/" + actionUrl + "?" + queryParams;
+      try {
+        btn.disabled = true;
+        btn.innerHTML = 'Connecting to Wallet...';
+        
+        // 2. Connect to the wallet
+        const resp = await window.solana.connect();
+        const customerPublicKey = resp.publicKey.toString();
+
+        btn.innerHTML = 'Preparing Order...';
+        
+        const formData = new FormData(form);
+        const params = Object.fromEntries(formData.entries());
+
+        // 3. Call your Action API POST handler directly
+        // This is the engine: It creates the order and returns the transaction
+        const response = await fetch("${actionApiUrl}?customerWallet=" + customerPublicKey, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            account: customerPublicKey, // Required by Solana Action spec
+            data: params // Pass name, email, address, phone
+          })
+        });
+
+        const actionData = await response.json();
+        
+        if (!actionData.transaction) {
+          throw new Error(actionData.message || "Failed to create transaction");
+        }
+
+        btn.innerHTML = 'Sign in Wallet...';
+
+        // 4. Sign and Send the transaction
+        const transaction = solanaWeb3.Transaction.from(
+          Uint8Array.from(atob(actionData.transaction), c => c.charCodeAt(0))
+        );
+        
+        const { signature } = await window.solana.signAndSendTransaction(transaction);
+        
+        // 5. Success!
+        btn.innerHTML = '✓ Order Confirmed!';
+        btn.classList.replace('bg-purple-600', 'bg-green-600');
+        
+        alert("Payment Successful! Signature: " + signature);
+
+      } catch (err) {
+        console.error(err);
+        btn.disabled = false;
+        btn.innerHTML = 'Try Again';
+        alert("Transaction failed: " + err.message);
+      }
     };
   </script>
 </body>
