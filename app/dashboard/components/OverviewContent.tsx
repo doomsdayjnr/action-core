@@ -1,14 +1,27 @@
 import { StatCard } from './StatCard';
 
+interface Merchant {
+  id: string;
+  walletAddress: string;
+  email: string | null;
+  apiKey: string;
+  subscription: {
+    status: string;
+    tier: string;
+    activeBlinksLimit: number;
+  } | null;
+}
+
 interface OverviewProps {
   orders: any[];
   blinks: any[];
-  merchant: any;
+  merchant: Merchant;
   confirmedOrders: any;
   totalRevenue: number;
   activeBlinks: number;
   setShowCreateBlink: (show: boolean) => void;
 }
+
 
 export function OverviewContent({ orders, blinks, merchant, confirmedOrders, totalRevenue, activeBlinks, setShowCreateBlink }: OverviewProps) {
   return (
