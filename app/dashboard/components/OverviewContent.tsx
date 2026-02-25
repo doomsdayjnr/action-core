@@ -4,7 +4,7 @@ interface OverviewProps {
   orders: any[];
   blinks: any[];
   merchant: any;
-  confirmedOrders: number;
+  confirmedOrders: any;
   totalRevenue: number;
   activeBlinks: number;
   setShowCreateBlink: (show: boolean) => void;
