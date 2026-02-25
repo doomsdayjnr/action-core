@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
-// Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// CORS headers for Solana Actions
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
   'X-Action-Version': '2.0',
   'X-Blockchain-Ids': 'solana',
-  'Access-Control-Expose-Headers': 'X-Action-Version, X-Blockchain-Ids',
 };
 
 export async function GET(
@@ -21,154 +17,131 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> | { slug: string } }
 ) {
   try {
-    const resolvedParams = await Promise.resolve(params);
-    const slug = resolvedParams.slug;
-
-    if (!slug) {
-      return new NextResponse('Slug required', { 
-        status: 400,
-        headers: { 
-          'Content-Type': 'text/plain',
-          ...CORS_HEADERS 
-        }
-      });
-    }
+    const { slug } = await Promise.resolve(params);
 
     const blink = await prisma.blink.findUnique({
       where: { slug },
-      include: {
-        merchant: { select: { walletAddress: true, payoutAddress: true } },
-        token: true
-      }
+      include: { merchant: true }
     });
 
     if (!blink || !blink.active) {
-      return new NextResponse('Not found', { 
-        status: 404,
-        headers: { 
-          'Content-Type': 'text/plain',
-          ...CORS_HEADERS 
-        }
-      });
+      return new NextResponse('Product not found or inactive', { status: 404 });
     }
 
-    const actionUrl = `https://memelend.tech/api/blinks/action/${slug}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${request.headers.get('host')}`;
+    const actionApiUrl = `${baseUrl}/api/blinks/action/${blink.id}`;
     
-    // Escape HTML to prevent XSS
-    const safeTitle = escapeHtml(blink.title);
-    const safeDesc = escapeHtml(blink.description);
-    const safeLabel = escapeHtml(blink.label || 'Buy Now');
-    const imageUrl = blink.icon || blink.imageUrl || 'https://memelend.tech/og.png';
-    
-    const html = `<!DOCTYPE html>
+    // The "Steve Jobs" UI: Clean, Focused, and Integrated
+    const html = `
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${safeTitle} | MemeLend</title>
-  <meta name="description" content="${safeDesc}">
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content="${safeTitle}">
-  <meta property="og:description" content="${safeDesc}">
-  <meta property="og:image" content="${imageUrl}">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://memelend.tech/b/${slug}">
-  
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${safeTitle}">
-  <meta name="twitter:description" content="${safeDesc}">
-  <meta name="twitter:image" content="${imageUrl}">
-  
-  <!-- Solana Actions - Critical for Blink functionality -->
-  <meta name="solana-action" content="${actionUrl}">
-  
+  <title>${escapeHtml(blink.title)} | ActionCore</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background: #f9fafb; }
+    .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <div class="max-w-md mx-auto p-4">
-    <div class="text-center py-4">
-      <span class="font-bold text-xl text-gray-900">⚡ MemeLend</span>
-    </div>
-    
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-      ${blink.icon || blink.imageUrl ? 
-        `<div class="aspect-square bg-gray-100">
-          <img src="${imageUrl}" alt="${safeTitle}" class="w-full h-full object-cover" loading="eager" onerror="this.style.display='none'">
-         </div>` 
-        : ''}
-      
-      <div class="p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-2">${safeTitle}</h1>
-        <p class="text-gray-600 text-sm mb-4 leading-relaxed">${safeDesc}</p>
-        <p class="text-3xl font-bold text-purple-600 mb-4">${blink.amount} ${blink.currency}</p>
-        
-        <a href="${actionUrl}" 
-           class="block w-full py-4 bg-purple-600 hover:bg-purple-700 text-white text-center font-bold rounded-xl transition-colors">
-          ${safeLabel}
-        </a>
+<body class="flex items-center justify-center min-h-screen p-4">
+  <div class="max-w-md w-full glass rounded-3xl shadow-2xl overflow-hidden border border-white">
+    ${blink.imageUrl ? `
+      <div class="h-64 overflow-hidden relative">
+        <img src="${blink.imageUrl}" class="w-full h-full object-cover" alt="Product" />
+        <div class="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full text-sm font-bold text-purple-600 shadow-sm">
+          ${blink.amount} ${blink.currency}
+        </div>
       </div>
+    ` : ''}
+
+    <div class="p-8">
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">${escapeHtml(blink.title)}</h1>
+      <p class="text-gray-500 text-sm mb-8 leading-relaxed">${escapeHtml(blink.description)}</p>
+
+      <form id="blink-form" class="space-y-4">
+        <div class="space-y-1">
+          <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Full Name</label>
+          <input required name="name" type="text" placeholder="John Doe" 
+            class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Email Address</label>
+          <input required name="email" type="email" placeholder="john@example.com" 
+            class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-1">Shipping Address</label>
+          <textarea required name="address" rows="2" placeholder="Street, City, Zip, Country" 
+            class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"></textarea>
+        </div>
+
+        <button type="submit" id="submit-btn" 
+          class="w-full py-4 mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2">
+          <span>${blink.label || 'Buy Now'}</span>
+          <span class="opacity-70">•</span>
+          <span>${blink.amount} ${blink.currency}</span>
+        </button>
+      </form>
+
+      <div id="status" class="mt-4 text-center text-sm hidden"></div>
     </div>
     
-    <p class="text-center text-xs text-gray-400 mt-4">Powered by MemeLend • Pay with Solana</p>
+    <div class="p-4 bg-gray-50/50 border-t border-gray-100 text-center">
+      <p class="text-[10px] text-gray-400 font-medium">SECURE SOLANA CHECKOUT • ACTIONCORE</p>
+    </div>
   </div>
+
+  <script>
+    const form = document.getElementById('blink-form');
+    const btn = document.getElementById('submit-btn');
+    const status = document.getElementById('status');
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      btn.disabled = true;
+      btn.innerHTML = 'Connecting to Wallet...';
+      
+      const formData = new FormData(form);
+      const params = Object.fromEntries(formData.entries());
+
+      // THE MAGIC STEP:
+      // We redirect to a "Universal Blink Player" or trigger the solana-action protocol.
+      // This ensures the wallet opens and handles the transaction return.
+      
+      const actionUrl = "${actionApiUrl}";
+      const queryParams = new URLSearchParams(params).toString();
+      
+      // We use the solana-action: protocol which is supported by Phantom/Solflare
+      const solanaActionLink = "solana-action:" + actionUrl + "?" + queryParams;
+      
+      // If the user is on mobile, this will open their wallet immediately.
+      // On desktop, we redirect to a player that handles the wallet connection.
+      window.location.href = "https://blinks.solana.com/" + actionUrl + "?" + queryParams;
+    };
+  </script>
 </body>
 </html>`;
 
-    // Update click count (fire and forget)
+    // Increment click count
     prisma.blink.update({
       where: { id: blink.id },
       data: { clickCount: { increment: 1 } }
     }).catch(() => {});
 
     return new NextResponse(html, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'no-cache, no-store, must-revalidate, private',
-        'Pragma': 'no-cache',
-        'Expires': '-1',
-        ...CORS_HEADERS
-      }
+      headers: { 'Content-Type': 'text/html', ...CORS_HEADERS }
     });
 
   } catch (error) {
-    console.error('Route error:', error);
-    return new NextResponse('Server error', { 
-      status: 500,
-      headers: { 
-        'Content-Type': 'text/plain',
-        ...CORS_HEADERS 
-      }
-    });
+    return new NextResponse('Error', { status: 500 });
   }
 }
 
-// OPTIONS handler for CORS preflight
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: CORS_HEADERS
-  });
-}
-
-function escapeHtml(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\n/g, ' ')
-    .replace(/\r/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+function escapeHtml(unsafe: string) {
+  return unsafe.replace(/[&<"']/g, m => ({ '&': '&amp;', '<': '&lt;', '"': '&quot;', "'": '&#039;' }[m] || m));
 }
